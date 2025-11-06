@@ -22,9 +22,11 @@ U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/13, /* data=*/1
 #define ENGINESTART_PIN 5
 #define ONOFF_PIN 6
 const int POTENTIOMETER_PIN = A0;
+=
 
 // Declare State Variables
 bool first_start;
+
 
 // Declare current value global variables
 bool enable = false;
@@ -92,10 +94,16 @@ void loop(void) {
     u8g2.setCursor(0, 30);
     u8g2.print(enable ? "Enabled" : "Disabled");
 
-    if (digitalRead(ENGINESTART_PIN) == HIGH) {
-      
-    }
     
+
+    if (digitalRead(ENGINESTART_PIN) == LOW) {
+      
+      send_can = !send_can ? true : false;
+      
+    } 
+    
+    u8g2.setCursor(0, 40);
+    u8g2.print(send_can ? "Sending Messages" : "Press to Send...");
   }
 
   u8g2.sendBuffer();  // transfer internal memory to the display
