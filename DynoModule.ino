@@ -5,6 +5,8 @@
 // Import Librarys
 #include <Arduino.h>
 #include <U8g2lib.h>
+#include <ASTCanLib.h>
+#include "CanManager.h"
 #ifdef U8X8_HAVE_HW_SPI
 #include <SPI.h>
 #endif
@@ -22,7 +24,7 @@ U8G2_SSD1309_128X64_NONAME0_F_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/13, /* data=*/1
 #define ENGINESTART_PIN 5
 #define ONOFF_PIN 6
 const int POTENTIOMETER_PIN = A0;
-=
+
 
 // Declare State Variables
 bool first_start;
@@ -37,7 +39,13 @@ int torque_value = 0;
 bool reverse = false;
 
 
+//CAN Packet Declaration
+#define BR_BOARD_CAN_ID 0x0C0
+uint8_t tx_buffer[CAN_MESSAGE_SIZE];
+
+
 void setup(void) {
+  canInit(CAN_BAUD_RATE);
   // Set pin modes (PULLUP = internal resistor)
   pinMode(FORREV_PIN, INPUT_PULLUP);
   pinMode(ESTOP_PIN, INPUT_PULLUP);
