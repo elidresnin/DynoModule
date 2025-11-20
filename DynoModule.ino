@@ -40,12 +40,15 @@ bool reverse = false;
 
 
 //CAN Packet Declaration
-#define BR_BOARD_CAN_ID 0x0C0
+#define DYNO_CAN_ID 0x0C0
 uint8_t tx_buffer[CAN_MESSAGE_SIZE];
 
 
 void setup(void) {
+
+  //Initialize CAN
   canInit(CAN_BAUD_RATE);
+
   // Set pin modes (PULLUP = internal resistor)
   pinMode(FORREV_PIN, INPUT_PULLUP);
   pinMode(ESTOP_PIN, INPUT_PULLUP);
@@ -72,7 +75,7 @@ void loop(void) {
   torque_value = map(potentiometerValue, 0, 1023, 0, 220);
 
   // Show first start graphic for 1 second
-  if(first_start) {
+  if (first_start) {
     u8g2.clearBuffer();
     u8g2.setCursor(0, 50);
     u8g2.print("TREV DYNO MODULE");
@@ -90,32 +93,54 @@ void loop(void) {
 
   } else {
     // Torque
-    u8g2.setCursor(0, 10);  // Set cursor position (x, y)
+    u8g2.setCursor(0, 10);         // Set cursor position (x, y)
     u8g2.print("Torque Value: ");  // Print a string label
-    u8g2.print(torque_value);  // write something to the internal memory
+    u8g2.print(torque_value);      // write something to the internal memory
+
+    tx_buffer[0] = torque_value & 0xFF;         // Mask to get the lower 8 bits
+    tx_buffer[1] = (torque_value >> 8) & 0xFF;  // Shift right to get upper 8 bits
 
     // Reverse
     u8g2.setCursor(0, 20);
-    u8g2.print(reverse ? "Direction: Reverse" : "Direction: Forward");
+    if (reverse) {
+      tx_buffer[4] = 0;  // Reverse
+      u8g2.print("Direction: Reverse");
+    } else {
+      tx_buffer[4] = 1;  // Forward
+      u8g2.print("Direction: Forward");
+    }
 
     // Enable
     u8g2.setCursor(0, 30);
-    u8g2.print(enable ? "Enabled" : "Disabled");
+    byte flagByte = 0;
+    if (enable) {
+      flagByte |= (1 << 0);  // Set Bit 0 (Enable)
+      u8g2.print("Enabled");
+    } else {
+      u8g2.print("Disabled");
+    }
+    tx_buffer[5] = flagByte;
 
-    
+
+    tx_buffer[2] = 0x00;
+    tx_buffer[3] = 0x00;
+    tx_buffer[6] = 0x00;
+    tx_buffer[7] = 0x00;
+
 
     if (digitalRead(ENGINESTART_PIN) == LOW) {
-      
+
       send_can = !send_can ? true : false;
-      
-    } 
-    
+    }
+
     u8g2.setCursor(0, 40);
     u8g2.print(send_can ? "Sending Messages" : "Press to Send...");
+    u8g2.setCursor(0, 50);
+    u8g2.print(tx_buffer);
+
   }
 
   u8g2.sendBuffer();  // transfer internal memory to the display
   first_start = false;
   delay(50);
-  
 }
